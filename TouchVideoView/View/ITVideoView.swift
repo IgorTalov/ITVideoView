@@ -11,16 +11,30 @@ import AVFoundation
 
 class ITVideoView: UIView {
     
-    var player: AVPlayer?
-    var videoUrl: URL?
+    var player: AVPlayer!
+    
+    var playerLayer: AVPlayerLayer!
+    
+    var asset: AVURLAsset!
+    
+    /// video content URL
+    var videoUrl: URL!
+    
+    /// variable describe video is playing
     var isPlaying = false
+    
+    var previousLocationX: CGFloat = 0.0
+    
+    private let rewinDimView = UIVisualEffectView()
+    
+    private var rewindTimeLineView: ITTimelineView!
     
     convenience init(frame: CGRect, videoUrl: URL) {
         self.init(frame: frame)
         self.videoUrl = videoUrl
-        backgroundColor = UIColor.black
         setupGestureRecognizers()
         setupVideoPlayer()
+        setupRewindTimeView()
     }
 
     override init(frame: CGRect) {
@@ -31,17 +45,35 @@ class ITVideoView: UIView {
         super.init(coder: aDecoder)
     }
     
+    private func setupEffectView() {
+        rewinDimView.frame = frame
+        addSubview(rewinDimView)
+    }
+    
     private func setupVideoPlayer() {
-        player = AVPlayer(url: videoUrl as! URL)
-        
-        let playerLayer = AVPlayerLayer(player: player)
+        asset = AVURLAsset(url: self.videoUrl)
+        let playerItem = AVPlayerItem(asset: asset)
+        player = AVPlayer(playerItem: playerItem)
+        playerLayer = AVPlayerLayer(player: player)
         playerLayer.frame = self.frame
         self.layer.addSublayer(playerLayer)
+    }
+    
+    private func setupRewindTimeView() {
+        rewindTimeLineView = ITTimelineView(frame: CGRect(x: 0.0, y: 30, width: bounds.width, height: 10.0))
+        rewindTimeLineView.alpha = 1.0
+        addSubview(rewindTimeLineView)
+    
+        let duration = CMTimeGetSeconds(asset.duration)
+        rewindTimeLineView.duration = TimeInterval(exactly: duration)!
     }
     
     private func setupGestureRecognizers() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(playOrPause))
         addGestureRecognizer(tapGesture)
+        
+        let longGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(longPressed(_:)))
+        addGestureRecognizer(longGestureRecognizer)
     }
     
     @objc private func playOrPause() {
@@ -53,20 +85,30 @@ class ITVideoView: UIView {
         isPlaying = !isPlaying
     }
     
-    @objc private func detectSwipeGesture(_ gesture: UISwipeGestureRecognizer) {
-        print(gesture.direction)
-    }
-    
-}
-
-extension ITVideoView {
-    
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    @objc private func longPressed(_ gesture: UILongPressGestureRecognizer) {
+        let location = gesture.location(in: gesture.view)
         
-        let touch = touches
-        print(touches)
+        if gesture.state == .began {
+            player?.pause()
+            rewindTimeLineView.currentTime = CMTimeGetSeconds((player.currentItem?.currentTime())!)
+            UIView.animate(withDuration: 0.2, delay: 0.0, options: [.curveEaseOut], animations: {
+                self.rewindTimeLineView.alpha = 1.0
+            }, completion: nil)
+        } else if gesture.state == .changed {
+            rewindTimeLineView.rewindByDistance(location.x - previousLocationX)
+        } else {
+            player?.play()
+            
+            let newTime = CMTime(seconds: rewindTimeLineView.currentTime, preferredTimescale: (player.currentItem?.currentTime().timescale)!)
+            player.currentItem?.seek(to: newTime)
+            
+            UIView.animate(withDuration: 0.2, delay: 0.0, options: [.curveEaseOut], animations: {
+                self.rewindTimeLineView.alpha = 0.0
+            }, completion: nil)
+        }
+        
+        if previousLocationX != location.x {
+            previousLocationX = location.x
+        }
     }
-    
-    
-    
 }

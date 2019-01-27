@@ -17,21 +17,20 @@ class ITVideoView: UIView {
     
     var asset: AVURLAsset!
     
-    /// video content URL
     var videoUrl: URL!
     
-    /// variable describe video is playing
     var isPlaying = false
     
     var previousLocationX: CGFloat = 0.0
     
-    private let rewinDimView = UIVisualEffectView()
+    private let rewindDimView = UIVisualEffectView()
     
     private var rewindTimeLineView: ITTimelineView!
     
     convenience init(frame: CGRect, videoUrl: URL) {
         self.init(frame: frame)
         self.videoUrl = videoUrl
+        backgroundColor = UIColor.black
         setupGestureRecognizers()
         setupVideoPlayer()
         setupRewindTimeView()
@@ -44,10 +43,12 @@ class ITVideoView: UIView {
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
     }
-    
+}
+
+extension ITVideoView {
     private func setupEffectView() {
-        rewinDimView.frame = frame
-        addSubview(rewinDimView)
+        rewindDimView.frame = frame
+        addSubview(rewindDimView)
     }
     
     private func setupVideoPlayer() {
@@ -60,12 +61,11 @@ class ITVideoView: UIView {
     }
     
     private func setupRewindTimeView() {
-        rewindTimeLineView = ITTimelineView(frame: CGRect(x: 0.0, y: 30, width: bounds.width, height: 10.0))
-        rewindTimeLineView.alpha = 1.0
-        addSubview(rewindTimeLineView)
-    
+        rewindTimeLineView = ITTimelineView(frame: CGRect(x: 0.0, y: 30.0, width: bounds.width, height: 10.0))
+        rewindTimeLineView.alpha = 0.0
         let duration = CMTimeGetSeconds(asset.duration)
         rewindTimeLineView.duration = TimeInterval(exactly: duration)!
+        addSubview(rewindTimeLineView)
     }
     
     private func setupGestureRecognizers() {
@@ -98,10 +98,8 @@ class ITVideoView: UIView {
             rewindTimeLineView.rewindByDistance(location.x - previousLocationX)
         } else {
             player?.play()
-            
             let newTime = CMTime(seconds: rewindTimeLineView.currentTime, preferredTimescale: (player.currentItem?.currentTime().timescale)!)
             player.currentItem?.seek(to: newTime)
-            
             UIView.animate(withDuration: 0.2, delay: 0.0, options: [.curveEaseOut], animations: {
                 self.rewindTimeLineView.alpha = 0.0
             }, completion: nil)

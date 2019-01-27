@@ -34,7 +34,7 @@ class ITTimelineView: UIView {
         didSet { setNeedsDisplay() }
     }
     
-    var zoom: CGFloat = 1.0 {
+    var zoom: CGFloat = 2.0 {
         didSet { setNeedsDisplay() }
     }
 
@@ -42,7 +42,7 @@ class ITTimelineView: UIView {
         didSet { setNeedsDisplay() }
     }
 
-    var intervalDuration: CGFloat = 15.0 {
+    var intervalDuration: CGFloat = 35.0 {
         didSet { setNeedsDisplay() }
     }
     
@@ -61,10 +61,11 @@ extension ITTimelineView {
     override func draw(_ rect: CGRect) {
         super.draw(rect)
         layer.sublayers?.removeAll()
-        let originX: CGFloat = 0.0
+        let internalWidth = distanceFromTimeInterval(duration)
+        let originX: CGFloat = bounds.width / 2 - internalWidth / 2
         let lineHeight: CGFloat = 4.0
         //Draw Full Line
-        let rect = CGRect(x: originX, y: CGFloat(0.0), width: bounds.width, height: lineHeight)
+        let rect = CGRect(x: originX, y: CGFloat(0.0), width: internalWidth, height: lineHeight)
         let totalPath = UIBezierPath(roundedRect: rect, cornerRadius: lineHeight)
         let shapeLayer = CAShapeLayer()
         shapeLayer.path = totalPath.cgPath
